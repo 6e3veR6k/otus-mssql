@@ -42,8 +42,8 @@ select
 from Sales.Orders as O
 inner join Sales.OrderLines as OL on OL.OrderID = O.OrderID
 where OL.UnitPrice > 100
+    and OL.Quantity > 20
 group by O.OrderID, O.OrderDate, DATEPART(QUARTER, O.OrderDate)
-having sum(OL.Quantity) > 20
 order by Quarter, Third, SaleDate
 offset 1000 rows fetch next 100 rows only
 
@@ -78,7 +78,7 @@ order by OrderDate desc
 -- 6. Все ид и имена клиентов и их контактные телефоны, которые покупали товар Chocolate frogs 250g
 go
 select
-    C.CustomerID,
+    distinct C.CustomerID,
     C.CustomerName,
     C.PhoneNumber
 from Sales.Customers as C
