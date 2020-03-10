@@ -42,7 +42,7 @@ select
 from Sales.Orders as O
 inner join Sales.OrderLines as OL on OL.OrderID = O.OrderID
 where OL.UnitPrice > 100
-    and OL.Quantity > 20
+    or OL.Quantity > 20
 group by O.OrderID, O.OrderDate, DATEPART(QUARTER, O.OrderDate)
 order by Quarter, Third, SaleDate
 offset 1000 rows fetch next 100 rows only
@@ -56,11 +56,12 @@ select
     P.FullName
 from Purchasing.PurchaseOrders as PO
 inner join Purchasing.Suppliers as S on S.SupplierID = PO.SupplierID
-inner join Application.People as P on P.PersonID = S.PrimaryContactPersonID 
+inner join Application.People as P on P.PersonID = S.PrimaryContactPersonID
+inner join Application.DeliveryMethods as DM on DM.DeliveryMethodID = PO.DeliveryMethodID
 where 
-    datepart(year, PO.OrderDate) = 2014
+    datepart(year, PO.ExpectedDeliveryDate) = 2014
     and
-    (PO.DeliveryMethodID = 7 or PO.DeliveryMethodID = 1)
+    (DM.DeliveryMethodName like '%Post%' or DM.DeliveryMethodName like '%Freight%')
 
 
 -- 5. 10 последних по дате продаж с именем клиента и именем сотрудника, который оформил заказ.
