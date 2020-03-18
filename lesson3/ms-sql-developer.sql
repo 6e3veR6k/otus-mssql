@@ -147,7 +147,7 @@ JOIN(SELECT InvoiceId, SUM(Quantity*UnitPrice) AS TotalSumm
 ORDER BY TotalSumm DESC
 
 -- запрос выбирает invoice и имя продавца который продал товара на общую суму invoice больше 27000, и отображает суму по уже собраным заказам из инвойса
-set STATISTICS IO, time on
+-- set STATISTICS IO, time on
 ;with SalesTotalCTE as (
     SELECT 
         InvoiceId, 
