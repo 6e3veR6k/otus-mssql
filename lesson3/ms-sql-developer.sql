@@ -147,6 +147,7 @@ JOIN(SELECT InvoiceId, SUM(Quantity*UnitPrice) AS TotalSumm
 ORDER BY TotalSumm DESC
 
 -- запрос выбирает invoice и имя продавца который продал товара на общую суму invoice больше 27000, и отображает суму по уже собраным заказам из инвойса
+set STATISTICS IO, time on
 ;with SalesTotalCTE as (
     SELECT 
         InvoiceId, 
@@ -160,11 +161,8 @@ OrderSumCTE as (
         SUM(OL.PickedQuantity*OL.UnitPrice) AS TotalSummForPickedItems,
         OL.OrderID
     FROM Sales.OrderLines AS OL
-    INNER JOIN Sales.Orders as O 
-    WHERE EXISTS (SELECT 1 
-                FROM Sales.Orders as O 
-                WHERE O.PickingCompletedWhen IS NOT NULL 
-                    AND O.OrderId = OL.OrderId)
+    INNER JOIN Sales.Orders as O ON O.OrderID = OL.OrderID
+    WHERE O.PickingCompletedWhen IS NOT NULL
     GROUP by OL.OrderID
 )
 SELECT
