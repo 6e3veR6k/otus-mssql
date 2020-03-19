@@ -1,3 +1,4 @@
+use WideWorldImporters
 /*
     Для всех заданий где возможно, сделайте 2 варианта запросов:
     1) через вложенный запрос
@@ -5,21 +6,28 @@
 */
 -- 1. Выберите сотрудников, которые являются продажниками, и еще не сделали ни одной продажи.
 
-select *
+select P.PersonID, P.FullName
+from Application.People as P
+left join (select distinct I.SalespersonPersonID from Sales.Invoices as I ) as T on T.SalespersonPersonID = P.PersonID
+where P.IsSalesperson = 1
+and T.SalespersonPersonID is null
+
+
+select P.PersonID, P.FullName
 from Application.People as P
 where P.IsSalesperson = 1
+and not exists (select 1 from Sales.Invoices as I where I.SalespersonPersonID = P.PersonID )
 
-select distinct I.SalespersonPersonID
-from Sales.Invoices as I
 
-select distinct I.SalespersonPersonID
-from Sales.Orders as I
+;with SalesPersonFromInvoices as
+(
+    select distinct I.SalespersonPersonID from Sales.Invoices as I
+)
+select P.PersonID, P.FullName
+from Application.People as P
+left join SalesPersonFromInvoices as T on T.SalespersonPersonID = P.PersonID
+where P.IsSalesperson = 1
 
-select * 
-from Sales.CustomerTransactions as CT
-
-select *
-from Sales.Orders as I
 
 
 
@@ -95,11 +103,11 @@ select
     AC.CityName,
     P.PersonID,
     P.FullName
-from Sales.Orders as O
-inner join Sales.Customers as C on C.CustomerID = O.CustomerID
-inner join Sales.OrderLines as L on L.OrderID = O.OrderID
+from Sales.Invoices as I
+inner join Sales.Customers as C on C.CustomerID = I.CustomerID
+inner join Sales.InvoiceLines as L on L.InvoiceID = I.InvoiceID
 inner join Application.Cities as AC on AC.CityID = C.DeliveryCityID
-inner join Application.People as P on P.PersonID = O.PickedByPersonID
+inner join Application.People as P on P.PersonID = I.PackedByPersonID
 where L.StockItemID in (select top 3 StockItemID from Warehouse.StockItems order by UnitPrice desc)
 
 
@@ -112,11 +120,11 @@ select
     AC.CityName,
     P.PersonID,
     P.FullName
-from Sales.Orders as O
-inner join Sales.Customers as C on C.CustomerID = O.CustomerID
-inner join Sales.OrderLines as L on L.OrderID = O.OrderID
+from Sales.Invoices as I
+inner join Sales.Customers as C on C.CustomerID = I.CustomerID
+inner join Sales.InvoiceLines as L on L.InvoiceID = I.InvoiceID
 inner join Application.Cities as AC on AC.CityID = C.DeliveryCityID
-inner join Application.People as P on P.PersonID = O.PickedByPersonID
+inner join Application.People as P on P.PersonID = I.PackedByPersonID
 inner join Top3CTE on Top3CTE.StockItemID = L.StockItemID
 
 
@@ -147,6 +155,8 @@ JOIN(SELECT InvoiceId, SUM(Quantity*UnitPrice) AS TotalSumm
 ORDER BY TotalSumm DESC
 
 -- запрос выбирает invoice и имя продавца который продал товара на общую суму invoice больше 27000, и отображает суму по уже собраным заказам из инвойса
+-- выбирает все платежки по продавцам у которых сума по платежке больше 27000, и показываем общую сумму по платежке и суму по уже собраному заказу из которого сделали платежку.
+ 
 -- set STATISTICS IO, time on
 ;with SalesTotalCTE as (
     SELECT 
