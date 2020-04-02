@@ -1,26 +1,48 @@
+/*              Группировки и агрегатные функции                 */
 /*
-Группировки и агрегатные функции
 1. Посчитать среднюю цену товара, общую сумму продажи по месяцам
--- календарь таблица...
 */
 
-select
+SELECT
     AVG(IL.UnitPrice) as AvgPrice,
     SUM(IL.UnitPrice*IL.Quantity) as Sum,
     FORMAT(I.InvoiceDate, 'yyyyMM01')
-from Sales.Invoices as I
-inner join Sales.InvoiceLines as IL on IL.InvoiceID = I.InvoiceID
-group by FORMAT(I.InvoiceDate, 'yyyyMM01')
+FROM Sales.Invoices as I
+INNER JOIN Sales.InvoiceLines as IL on IL.InvoiceID = I.InvoiceID
+GROUP BY FORMAT(I.InvoiceDate, 'yyyyMM01')
 
 
 /*
 2. Отобразить все месяцы, где общая сумма продаж превысила 10 000
 */
- 
+
+SELECT DISTINCT DATEFROMPARTS(YEAR(I.InvoiceDate), MONTH(I.InvoiceDate), 1)
+FROM Sales.Invoices AS I
+WHERE EXISTS 
+    (SELECT 1 
+    FROM Sales.InvoiceLines AS IL 
+    WHERE IL.InvoiceID = I.InvoiceID 
+    GROUP BY InvoiceID 
+    HAVING SUM(IL.UnitPrice * IL.Quantity) > 10000)
+ORDER BY DATEFROMPARTS(YEAR(I.InvoiceDate), MONTH(I.InvoiceDate), 1) DESC
+
+
 
 /*
 3. Вывести сумму продаж, дату первой продажи и количество проданного по месяцам, по товарам, продажи которых менее 50 ед в месяц.
 Группировка должна быть по году и месяцу.
+*/
+
+SELECT
+    DATEFROMPARTS( YEAR(I.InvoiceDate), MONTH(I.InvoiceDate), 1) AS IPeriod,
+    SUM(IL.UnitPrice * IL.Quantity) AS SumInvoices,
+    MIN(I.InvoiceDate) AS FirstInvoiceDate,
+    SUM(IL.Quantity) AS CountOfUnits 
+FROM Sales.InvoiceLines AS IL
+INNER JOIN Sales.Invoices AS I ON I.InvoiceID = IL.InvoiceID
+GROUP BY YEAR(I.InvoiceDate), MONTH(I.InvoiceDate)
+
+/*
 4. Написать рекурсивный CTE sql запрос и заполнить им временную таблицу и табличную переменную
 Дано :
 CREATE TABLE dbo.MyEmployees
