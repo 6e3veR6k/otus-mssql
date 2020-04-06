@@ -1,22 +1,24 @@
-/*              Группировки и агрегатные функции                 */
 /*
+Группировки и агрегатные функции
 1. Посчитать среднюю цену товара, общую сумму продажи по месяцам
+-- календарь таблица...
 */
 
 SELECT
-    AVG(IL.UnitPrice) as AvgPrice,
-    SUM(IL.UnitPrice*IL.Quantity) as Sum,
+    AVG(IL.UnitPrice) AS AvgPrice,
+    SUM(IL.UnitPrice*IL.Quantity) AS Sum,
     FORMAT(I.InvoiceDate, 'yyyyMM01')
-FROM Sales.Invoices as I
-INNER JOIN Sales.InvoiceLines as IL on IL.InvoiceID = I.InvoiceID
+FROM Sales.Invoices AS I
+INNER JOIN Sales.InvoiceLines AS IL ON IL.InvoiceID = I.InvoiceID
 GROUP BY FORMAT(I.InvoiceDate, 'yyyyMM01')
+
 
 
 /*
 2. Отобразить все месяцы, где общая сумма продаж превысила 10 000
 */
-
-SELECT DISTINCT DATEFROMPARTS(YEAR(I.InvoiceDate), MONTH(I.InvoiceDate), 1)
+ 
+ SELECT DISTINCT DATEFROMPARTS(YEAR(I.InvoiceDate), MONTH(I.InvoiceDate), 1)
 FROM Sales.Invoices AS I
 WHERE EXISTS 
     (SELECT 1 
