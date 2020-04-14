@@ -31,8 +31,8 @@ FROM DatesCTE
 OPTION (MAXRECURSION 0);
 
 /*
-Группировки и агрегатные функции
-1. Посчитать среднюю цену товара, общую сумму продажи по месяцам
+    Группировки и агрегатные функции
+    1. Посчитать среднюю цену товара, общую сумму продажи по месяцам
 */
 
 SELECT
@@ -43,6 +43,7 @@ FROM Sales.Invoices AS I
 INNER JOIN Sales.InvoiceLines AS IL ON IL.InvoiceID = I.InvoiceID
 GROUP BY FORMAT(I.InvoiceDate, 'yyyy-MM-01')
 ORDER BY Month
+
 
 --1.1
 SELECT
@@ -55,32 +56,36 @@ INNER JOIN Sales.InvoiceLines AS IL ON IL.InvoiceID = I.InvoiceID
 GROUP BY D.FirstDayOfMonth
 ORDER BY Month
 
+
 /*
-2. Отобразить все месяцы, где общая сумма продаж превысила 10 000
+    2. Отобразить все месяцы, где общая сумма продаж превысила 10 000
 */
  
-SELECT DATEFROMPARTS(YEAR(I.InvoiceDate), MONTH(I.InvoiceDate), 1) AS Period, SUM(IL.UnitPrice * IL.Quantity) AS SumInvoices
+SELECT 
+    DATEFROMPARTS(YEAR(I.InvoiceDate), MONTH(I.InvoiceDate), 1) AS Period,
+    SUM(IL.UnitPrice * IL.Quantity) AS SumInvoices
 FROM Sales.Invoices AS I
 INNER JOIN Sales.InvoiceLines AS IL ON IL.InvoiceID = I.InvoiceID
 GROUP BY DATEFROMPARTS(YEAR(I.InvoiceDate), MONTH(I.InvoiceDate), 1)
 HAVING SUM(IL.UnitPrice * IL.Quantity) > 10000
 ORDER BY Period DESC
 
+
 -- 2.1
-SELECT D.FirstDayOfMonth
+SELECT
+    D.FirstDayOfMonth AS Period,
+    SUM(IL.UnitPrice * IL.Quantity) AS SumInvoices
 FROM #Dates AS D 
 LEFT JOIN Sales.Invoices AS I ON I.InvoiceDate = D.[Date]
-INNER JOIN
-    (SELECT IL.InvoiceID, SUM(IL.UnitPrice * IL.Quantity) AS SumInvoice
-    FROM Sales.InvoiceLines AS IL 
-    GROUP BY InvoiceID 
-    HAVING SUM(IL.UnitPrice * IL.Quantity) > 10000) AS IL ON IL.InvoiceID = I.InvoiceID
-ORDER BY DATEFROMPARTS(YEAR(I.InvoiceDate), MONTH(I.InvoiceDate), 1) DESC
+INNER JOIN Sales.InvoiceLines AS IL ON IL.InvoiceID = I.InvoiceID
+GROUP BY D.FirstDayOfMonth
+HAVING SUM(IL.UnitPrice * IL.Quantity) > 10000
+ORDER BY Period DESC
 
 
 /*
-3. Вывести сумму продаж, дату первой продажи и количество проданного по месяцам, по товарам, продажи которых менее 50 ед в месяц.
-Группировка должна быть по году и месяцу.
+    3. Вывести сумму продаж, дату первой продажи и количество проданного по месяцам, по товарам, продажи которых менее 50 ед в месяц.
+    Группировка должна быть по году и месяцу.
 */
 
 SELECT
@@ -93,6 +98,23 @@ FROM Sales.InvoiceLines AS IL
 INNER JOIN Sales.Invoices AS I ON I.InvoiceID = IL.InvoiceID
 INNER JOIN Warehouse.StockItems AS WI ON WI.StockItemID = IL.StockItemID
 GROUP BY YEAR(I.InvoiceDate), MONTH(I.InvoiceDate), WI.StockItemName
+HAVING SUM(IL.Quantity) < 50
+ORDER BY IPeriod, FirstInvoiceDate
+
+
+--3.1
+
+SELECT
+    D.FirstDayOfMonth AS IPeriod,
+    SUM(IL.UnitPrice * IL.Quantity) AS SumInvoices,
+    MIN(I.InvoiceDate) AS FirstInvoiceDate,
+    SUM(IL.Quantity) AS CountOfUnits,
+    WI.StockItemName
+FROM #Dates AS D
+LEFT JOIN Sales.Invoices AS I ON I.InvoiceDate = D.[Date]
+INNER JOIN Sales.InvoiceLines AS IL ON I.InvoiceID = IL.InvoiceID
+INNER JOIN Warehouse.StockItems AS WI ON WI.StockItemID = IL.StockItemID
+GROUP BY D.FirstDayOfMonth, WI.StockItemName
 HAVING SUM(IL.Quantity) < 50
 ORDER BY IPeriod, FirstInvoiceDate
 
