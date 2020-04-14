@@ -1,4 +1,36 @@
 /*
+ Генерация временной таблицы для опционального задания
+*/
+DECLARE @StartDate DATE;
+DECLARE @ToDate DATE;
+
+SELECT @StartDate = MIN(InvoiceDate), @ToDate=MAX(InvoiceDate)
+FROM Sales.Invoices
+
+
+;WITH 
+IntCte AS
+    (
+    SELECT 0 AS Digit
+        UNION ALL
+    SELECT Digit + 1
+    FROM IntCte
+    WHERE Digit < DATEDIFF(DAY, @StartDate, @ToDate)
+    ),
+DatesCTE AS
+    (
+    SELECT DATEADD(DAY, Digit, @StartDate) AS [Date] FROM IntCTE
+    )
+
+SELECT 
+    [Date], 
+    DATEFROMPARTS(YEAR([Date]), MONTH([Date]), 1) AS FirstDayOfMonth, 
+    EOMONTH([Date]) AS LastDayOfMonth
+INTO #Dates
+FROM DatesCTE
+OPTION (MAXRECURSION 0);
+
+/*
 Группировки и агрегатные функции
 1. Посчитать среднюю цену товара, общую сумму продажи по месяцам
 */
@@ -6,24 +38,43 @@
 SELECT
     AVG(IL.UnitPrice) AS AvgPrice,
     SUM(IL.UnitPrice*IL.Quantity) AS Sum,
-    FORMAT(I.InvoiceDate, 'yyyyMM01')
+    FORMAT(I.InvoiceDate, 'yyyy-MM-01') AS Month
 FROM Sales.Invoices AS I
 INNER JOIN Sales.InvoiceLines AS IL ON IL.InvoiceID = I.InvoiceID
-GROUP BY FORMAT(I.InvoiceDate, 'yyyyMM01')
+GROUP BY FORMAT(I.InvoiceDate, 'yyyy-MM-01')
+ORDER BY Month
 
+--1.1
+SELECT
+    AVG(IL.UnitPrice) AS AvgPrice,
+    SUM(IL.UnitPrice*IL.Quantity) AS Sum,
+    D.FirstDayOfMonth AS Month
+FROM #Dates AS D
+LEFT JOIN Sales.Invoices AS I ON I.InvoiceDate = D.[Date]
+INNER JOIN Sales.InvoiceLines AS IL ON IL.InvoiceID = I.InvoiceID
+GROUP BY D.FirstDayOfMonth
+ORDER BY Month
 
 /*
 2. Отобразить все месяцы, где общая сумма продаж превысила 10 000
 */
  
-SELECT DISTINCT DATEFROMPARTS(YEAR(I.InvoiceDate), MONTH(I.InvoiceDate), 1)
+SELECT DATEFROMPARTS(YEAR(I.InvoiceDate), MONTH(I.InvoiceDate), 1) AS Period, SUM(IL.UnitPrice * IL.Quantity) AS SumInvoices
 FROM Sales.Invoices AS I
-WHERE EXISTS 
-    (SELECT 1 
+INNER JOIN Sales.InvoiceLines AS IL ON IL.InvoiceID = I.InvoiceID
+GROUP BY DATEFROMPARTS(YEAR(I.InvoiceDate), MONTH(I.InvoiceDate), 1)
+HAVING SUM(IL.UnitPrice * IL.Quantity) > 10000
+ORDER BY Period DESC
+
+-- 2.1
+SELECT D.FirstDayOfMonth
+FROM #Dates AS D 
+LEFT JOIN Sales.Invoices AS I ON I.InvoiceDate = D.[Date]
+INNER JOIN
+    (SELECT IL.InvoiceID, SUM(IL.UnitPrice * IL.Quantity) AS SumInvoice
     FROM Sales.InvoiceLines AS IL 
-    WHERE IL.InvoiceID = I.InvoiceID 
     GROUP BY InvoiceID 
-    HAVING SUM(IL.UnitPrice * IL.Quantity) > 10000)
+    HAVING SUM(IL.UnitPrice * IL.Quantity) > 10000) AS IL ON IL.InvoiceID = I.InvoiceID
 ORDER BY DATEFROMPARTS(YEAR(I.InvoiceDate), MONTH(I.InvoiceDate), 1) DESC
 
 
@@ -46,7 +97,6 @@ HAVING SUM(IL.Quantity) < 50
 ORDER BY IPeriod, FirstInvoiceDate
 
 
- 
 /*
 4. Написать рекурсивный CTE sql запрос и заполнить им временную таблицу и табличную переменную
 Дано :
