@@ -260,12 +260,12 @@ CREATE TABLE [Osago].[SupplementaryAgreementTypes]
 	[SupplementaryAgreementTypeId] [bigint] NOT NULL,
 	[SupplementaryAgreementTypeGid] [uniqueidentifier] NULL,
 	[Name] [nvarchar](255) NULL,
+	[RegulatorIdCompl]  AS (case [SupplementaryAgreementTypeId] when (1) then (1) when (3) then (1) when (7) then (4) when (8) then (4) when (5) then (3) when (4) then (1)  end),
 	CONSTRAINT [PK_SupplementaryAgreementTypeId] PRIMARY KEY CLUSTERED 
 (
 	[SupplementaryAgreementTypeId] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
 ) ON [PRIMARY]
-GO
 
 
 
