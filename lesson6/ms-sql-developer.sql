@@ -198,7 +198,6 @@ CREATE TABLE #TempEmployee (
     EmployeeLevel   INT             NOT NULL
 )
 
-
 ;WITH EmployeeCTE AS (
     SELECT E.EmployeeID, E.FirstName + ' ' + E.LastName AS Name, E.Title, 1 AS EmployeeLevel
     FROM dbo.MyEmployees AS E
@@ -214,3 +213,9 @@ INTO #TempEmployee
 SELECT
     EmployeeID, Name, Title, EmployeeLevel
 FROM EmployeeCTE
+
+
+
+
+
+
