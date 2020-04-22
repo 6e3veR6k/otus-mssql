@@ -113,122 +113,10 @@ INSERT INTO [Sales].[Customers]
     ,[PostalPostalCode]
     ,[LastEditedBy])
 VALUES
-    (NEXT VALUE FOR [Sequences].[CustomerID]
-, N'Perseus Coleman'
-, @MainCustomerId
-, 5
-, 2
-, 20
-, 19
-, 2
-, 33
-, 33
-, NULL
-, CONVERT(date, '20200401')
-, 0
-, 0
-, 0
-, 3
-, '(333) 555-0101'
-, '(333) 555-0101'
-, ''
-, ''
-, 'http://www.morgantoys.com/PerseusColeman'
-, 'Perseus Coleman 101'
-, '70 Kasesalu Street'
-, 90129
-, geography::STGeomFromText('LINESTRING(-122.360 47.656, -122.343 47.656 )', 4326)
-, 'PO Box 9101'
-, 'Abilene'
-, 90129
-, 1),
-    (NEXT VALUE FOR [Sequences].[CustomerID]
-, N'Nelson Gray'
-, @MainCustomerId
-, 5
-, 2
-, 20
-, 19
-, 2
-, 33
-, 33
-, NULL
-, CONVERT(date, '20200401')
-, 0
-, 0
-, 0
-, 3
-, '(333) 555-0102'
-, '(333) 555-0102'
-, ''
-, ''
-, 'http://www.morgantoys.com/PerseusColeman'
-, 'Nelson Gray 102'
-, '70 Nelson Street'
-, 90129
-, geography::STGeomFromText('LINESTRING(-122.360 47.656, -122.343 47.656 )', 4326)
-, 'PO Box 10101'
-, 'Abilene'
-, 90129
-, 1),
-    (NEXT VALUE FOR [Sequences].[CustomerID]
-, N'Caden Wilson'
-, @MainCustomerId
-, 5
-, 2
-, 18
-, 19
-, 2
-, 33
-, 33
-, NULL
-, CONVERT(date, '20200401')
-, 0
-, 0
-, 0
-, 7
-, '(333) 555-0103'
-, '(333) 555-0105'
-, ''
-, ''
-, 'http://www.morgantoys.com/CadenWilson'
-, 'Caden Wilson 103'
-, '70 Wilson Street'
-, 90129
-, geography::STGeomFromText('LINESTRING(-122.360 47.656, -122.343 47.656 )', 4326)
-, 'PO Box 10603'
-, 'Abilene'
-, 90129
-, 1),
-    (NEXT VALUE FOR [Sequences].[CustomerID]
-, N'David Richardson'
-, @MainCustomerId
-, 5
-, 2
-, 18
-, 19
-, 2
-, 33
-, 33
-, NULL
-, CONVERT(date, '20200401')
-, 0
-, 0
-, 0
-, 10
-, '(333) 555-0501'
-, '(333) 555-0501'
-, ''
-, ''
-, 'http://www.morgantoys.com/DavidRichardson'
-, 'David Richardson 777'
-, '34 Richardson Street'
-, 90129
-, geography::STGeomFromText('LINESTRING(-122.360 47.656, -122.343 47.656 )', 4326)
-, 'PO Box 3401'
-, 'Abilene'
-, 90129
-, 1)
+    (NEXT VALUE FOR [Sequences].[CustomerID] ,N'Perseus Coleman' ,@MainCustomerId ,5 ,2 ,20 ,19 ,2 ,33 ,33 ,NULL ,CONVERT(date, '20200401') ,0 ,0 ,0 ,3 ,'(333) 555-0101' ,'(333) 555-0101' ,'' ,'' ,'http://www.morgantoys.com/PerseusColeman' ,'Perseus Coleman 101' ,'70 Kasesalu Street' ,90129 ,geography::STGeomFromText('LINESTRING(-122.360 47.656, -122.343 47.656 )', 4326) ,'PO Box 9101' ,'Abilene' ,90129 ,1),
+    (NEXT VALUE FOR [Sequences].[CustomerID] ,N'Nelson Gray' ,@MainCustomerId ,5 ,2 ,20 ,19 ,2 ,33 ,33 ,NULL ,CONVERT(date, '20200401') ,0 ,0 ,0 ,3 ,'(333) 555-0102' ,'(333) 555-0102' ,'' ,'' ,'http://www.morgantoys.com/PerseusColeman' ,'Nelson Gray 102' ,'70 Nelson Street' ,90129 ,geography::STGeomFromText('LINESTRING(-122.360 47.656, -122.343 47.656 )', 4326) ,'PO Box 10101' ,'Abilene' ,90129 ,1),
+    (NEXT VALUE FOR [Sequences].[CustomerID] ,N'Caden Wilson' ,@MainCustomerId ,5 ,2 ,18 ,19 ,2 ,33 ,33 ,NULL ,CONVERT(date, '20200401') ,0 ,0 ,0 ,7 ,'(333) 555-0103' ,'(333) 555-0105' ,'' ,'' ,'http://www.morgantoys.com/CadenWilson' ,'Caden Wilson 103' ,'70 Wilson Street' ,90129 ,geography::STGeomFromText('LINESTRING(-122.360 47.656, -122.343 47.656 )', 4326) ,'PO Box 10603' ,'Abilene' ,90129 ,1),
+    (NEXT VALUE FOR [Sequences].[CustomerID] ,N'David Richardson' ,@MainCustomerId ,5 ,2 ,18 ,19 ,2 ,33 ,33 ,NULL ,CONVERT(date, '20200401') ,0 ,0 ,0 ,10 ,'(333) 555-0501' ,'(333) 555-0501' ,'' ,'' ,'http://www.morgantoys.com/DavidRichardson' ,'David Richardson 777' ,'34 Richardson Street' ,90129 ,geography::STGeomFromText('LINESTRING(-122.360 47.656, -122.343 47.656 )', 4326) ,'PO Box 3401' ,'Abilene' ,90129 ,1)
 
 
 
@@ -240,7 +128,7 @@ VALUES
 
 GO
 DELETE FROM [Sales].[Customers]
-WHERE CustomerName LIKE 'David Richardson'
+WHERE CustomerName = 'David Richardson' -- уникальное
 
 /*
 	3. изменить одну запись, из добавленных через UPDATE
@@ -249,3 +137,10 @@ WHERE CustomerName LIKE 'David Richardson'
 UPDATE Sales.Customers
 SET BillToCustomerID = ''
 FROM
+    (SELECT 
+        (SELECT CustomerID FROM Sales.Customers WHERE CustomerName = 'Nelson Gray') AS BillToCustomerID,
+        (SELECT CustomerCategoryID FROM Sales.CustomerCategories WHERE CustomerCategoryName = 'Agent') AS CustomerCategoryID,
+        (SELECT BuyingGroupID FROM [Sales].[BuyingGroups] WHERE BuyingGroupName = 'Wingtip Toys') AS BuyingGroupID,
+        (SELECT PersonID FROM Application.People WHERE FullName = 'Jai Shand' ) AS PrimaryContactPersonID
+    ) AS Data 
+WHERE CustomerName = 'Caden Wilson'
