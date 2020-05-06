@@ -103,20 +103,27 @@ ORDER BY IPeriod, FirstInvoiceDate
 
 
 --3.1
-
+;WITH InvoiceCTE AS (
 SELECT
-    D.FirstDayOfMonth AS IPeriod,
+    DATEFROMPARTS( YEAR(I.InvoiceDate), MONTH(I.InvoiceDate), 1) AS IPeriod,
     SUM(IL.UnitPrice * IL.Quantity) AS SumInvoices,
     MIN(I.InvoiceDate) AS FirstInvoiceDate,
     SUM(IL.Quantity) AS CountOfUnits,
     WI.StockItemName
-FROM #Dates AS D
-LEFT JOIN Sales.Invoices AS I ON I.InvoiceDate = D.[Date]
-INNER JOIN Sales.InvoiceLines AS IL ON I.InvoiceID = IL.InvoiceID
+FROM Sales.InvoiceLines AS IL
+INNER JOIN Sales.Invoices AS I ON I.InvoiceID = IL.InvoiceID
 INNER JOIN Warehouse.StockItems AS WI ON WI.StockItemID = IL.StockItemID
-GROUP BY D.FirstDayOfMonth, WI.StockItemName
+GROUP BY YEAR(I.InvoiceDate), MONTH(I.InvoiceDate), WI.StockItemName
 HAVING SUM(IL.Quantity) < 50
 ORDER BY IPeriod, FirstInvoiceDate
+),
+DatesCTE AS (
+    SELECT @StartDate AS [Period]
+    UNION ALL
+    SELECT DATEADD(mm, 1, [Period])
+    FROM DatesCTE
+    WHERE [Period] < @End
+)
 
 
 /*
