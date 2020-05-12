@@ -47,12 +47,12 @@ ORDER BY Month
 
 --1.1
 SELECT
-    AVG(IL.UnitPrice) AS AvgPrice,
-    SUM(IL.UnitPrice*IL.Quantity) AS Sum,
+    ISNULL(AVG(IL.UnitPrice), 0) AS AvgPrice,
+    ISNULL(SUM(IL.UnitPrice*IL.Quantity), 0) AS Sum,
     D.FirstDayOfMonth AS Month
 FROM #Dates AS D
 LEFT JOIN Sales.Invoices AS I ON I.InvoiceDate = D.[Date]
-INNER JOIN Sales.InvoiceLines AS IL ON IL.InvoiceID = I.InvoiceID
+LEFT JOIN Sales.InvoiceLines AS IL ON IL.InvoiceID = I.InvoiceID
 GROUP BY D.FirstDayOfMonth
 ORDER BY Month
 
@@ -74,10 +74,10 @@ ORDER BY Period DESC
 -- 2.1
 SELECT
     D.FirstDayOfMonth AS Period,
-    SUM(IL.UnitPrice * IL.Quantity) AS SumInvoices
+    ISNULL(SUM(IL.UnitPrice * IL.Quantity), 0) AS SumInvoices
 FROM #Dates AS D 
 LEFT JOIN Sales.Invoices AS I ON I.InvoiceDate = D.[Date]
-INNER JOIN Sales.InvoiceLines AS IL ON IL.InvoiceID = I.InvoiceID
+LEFT JOIN Sales.InvoiceLines AS IL ON IL.InvoiceID = I.InvoiceID
 GROUP BY D.FirstDayOfMonth
 HAVING SUM(IL.UnitPrice * IL.Quantity) > 10000
 ORDER BY Period DESC
@@ -115,15 +115,52 @@ INNER JOIN Sales.Invoices AS I ON I.InvoiceID = IL.InvoiceID
 INNER JOIN Warehouse.StockItems AS WI ON WI.StockItemID = IL.StockItemID
 GROUP BY YEAR(I.InvoiceDate), MONTH(I.InvoiceDate), WI.StockItemName
 HAVING SUM(IL.Quantity) < 50
-ORDER BY IPeriod, FirstInvoiceDate
 ),
 DatesCTE AS (
-    SELECT @StartDate AS [Period]
+    SELECT @StartDate AS IPeriod
     UNION ALL
-    SELECT DATEADD(mm, 1, [Period])
+    SELECT DATEADD(mm, 1, IPeriod) AS IPeriod
     FROM DatesCTE
-    WHERE [Period] < @End
+    WHERE IPeriod < @ToDate
 )
+
+SELECT
+    D.IPeriod,
+    I.SumInvoices,
+    I.FirstInvoiceDate,
+    I.CountOfUnits,
+    I.StockItemName
+FROM DatesCTE AS D
+LEFT JOIN InvoiceCTE AS I ON I.IPeriod = D.IPeriod
+ORDER BY D.IPeriod
+
+-- 3.1.1
+SELECT
+    D.IPeriod,
+    I.SumInvoices,
+    I.FirstInvoiceDate,
+    I.CountOfUnits,
+    I.StockItemName
+FROM
+    (SELECT
+        DISTINCT DATEFROMPARTS(YEAR(I.InvoiceDate), MONTH(I.InvoiceDate), 1) AS IPeriod
+    FROM Sales.Invoices AS I
+    ) AS D
+LEFT JOIN
+    (SELECT
+        DATEFROMPARTS( YEAR(I.InvoiceDate), MONTH(I.InvoiceDate), 1) AS IPeriod,
+        SUM(IL.UnitPrice * IL.Quantity) AS SumInvoices,
+        MIN(I.InvoiceDate) AS FirstInvoiceDate,
+        SUM(IL.Quantity) AS CountOfUnits,
+        WI.StockItemName
+    FROM Sales.InvoiceLines AS IL
+    INNER JOIN Sales.Invoices AS I ON I.InvoiceID = IL.InvoiceID
+    INNER JOIN Warehouse.StockItems AS WI ON WI.StockItemID = IL.StockItemID
+    GROUP BY YEAR(I.InvoiceDate), MONTH(I.InvoiceDate), WI.StockItemName
+    HAVING SUM(IL.Quantity) < 50
+    ) AS I
+        ON I.IPeriod = D.IPeriod
+ORDER BY D.IPeriod
 
 
 /*
@@ -206,20 +243,25 @@ CREATE TABLE #TempEmployee (
 )
 
 ;WITH EmployeeCTE AS (
-    SELECT E.EmployeeID, E.FirstName + ' ' + E.LastName AS Name, E.Title, 1 AS EmployeeLevel
+    SELECT E.EmployeeID, CAST(E.FirstName + ' ' + E.LastName AS NVARCHAR(80)) AS Name, E.Title, 1 AS EmployeeLevel
     FROM dbo.MyEmployees AS E
     WHERE E.ManagerID IS NULL
         UNION ALL
-    SELECT E2.EmployeeID, E2.FirstName + ' ' + E2.LastName AS Name, E2.Title, C2.EmployeeLevel + 1 AS EmployeeLevel
+    SELECT E2.EmployeeID, CAST(REPLICATE('|', C2.EmployeeLevel) + ' ' + E2.FirstName + ' ' + E2.LastName AS NVARCHAR(80)) AS Name, E2.Title, C2.EmployeeLevel + 1 AS EmployeeLevel
     FROM dbo.MyEmployees AS E2
     INNER JOIN EmployeeCTE AS C2 ON C2.EmployeeID = E2.ManagerID
 )
+
 INSERT INTO @TEmployee (EmployeeID, Name, Title, EmployeeLevel)
 OUTPUT inserted.EmployeeID, inserted.Name, inserted.Title, inserted.EmployeeLevel
 INTO #TempEmployee
 SELECT
     EmployeeID, Name, Title, EmployeeLevel
 FROM EmployeeCTE
+
+
+SELECT * FROM #TempEmployee
+
 
 
 
