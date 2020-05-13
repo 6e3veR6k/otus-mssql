@@ -281,3 +281,74 @@ VALUES
 );
 
 
+/*
+    5. Напишите запрос, который выгрузит данные через bcp out и загрузить через bulk insert
+*/
+GO
+USE WideWorldImporters;
+
+GO
+EXEC sp_configure 'show advanced options', 1;
+
+GO
+RECONFIGURE;
+
+GO
+EXEC sp_configure 'xp_cmdshell', 1;
+
+GO
+RECONFIGURE;
+
+GO
+SELECT @@SERVERNAME
+--HQ00-5029-E8658
+
+GO
+CREATE TABLE [Sales].[InvoiceLinesTemp]
+(
+    [InvoiceLineID] [int] NOT NULL,
+    [InvoiceID] [int] NOT NULL,
+    [StockItemID] [int] NOT NULL,
+    [Description] [nvarchar](100) NOT NULL,
+    [PackageTypeID] [int] NOT NULL,
+    [Quantity] [int] NOT NULL,
+    [UnitPrice] [decimal](18, 2) NULL,
+    [TaxRate] [decimal](18, 3) NOT NULL,
+    [TaxAmount] [decimal](18, 2) NOT NULL,
+    [LineProfit] [decimal](18, 2) NOT NULL,
+    [ExtendedPrice] [decimal](18, 2) NOT NULL,
+    [LastEditedBy] [int] NOT NULL,
+    [LastEditedWhen] [datetime2](7) NOT NULL,
+    CONSTRAINT [PK_Sales_InvoiceLinesTemp] PRIMARY KEY CLUSTERED 
+    (
+        [InvoiceLineID] ASC
+    )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [USERDATA]
+) ON [USERDATA]
+
+
+GO
+EXEC master.sys.xp_cmdshell 'bcp "[WideWorldImporters].Sales.InvoiceLines" out  "C:\temp\InvoiceLines.txt" -T -w -t"@$#;" -S HQ00-5029-E8658';
+
+GO
+TRUNCATE TABLE [Sales].[InvoiceLinesTemp]
+
+GO
+BULK INSERT [WideWorldImporters].[Sales].[InvoiceLinesTemp]
+   FROM "C:\temp\InvoiceLines.txt"
+   WITH 
+	 (
+		BATCHSIZE = 50000, 
+		DATAFILETYPE = 'widechar',
+		FIELDTERMINATOR = '@$#;',
+		ROWTERMINATOR ='\n',
+		KEEPNULLS,
+		TABLOCK        
+	  );
+
+GO
+
+
+select Count(*)
+from [Sales].[InvoiceLinesTemp];
+
+
